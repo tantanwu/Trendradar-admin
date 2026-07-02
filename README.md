@@ -24,7 +24,9 @@ It reuses TrendRadar's official visual config editor, adds authenticated server-
 ```text
 admin/admin_server.py   # Python HTTP admin backend
 admin/admin_bridge.js   # Browser-side bridge injected into official editor
-deploy/                 # Example compose service
+deploy/install.sh       # Installer for an existing TrendRadar directory
+deploy/                 # Compose examples and env template
+docs/deployment.md      # Full deployment guide
 ```
 
 This repo does not vendor TrendRadar itself. Deploy it beside a TrendRadar checkout or release tree containing:
@@ -36,7 +38,36 @@ docs/assets/...
 output/
 ```
 
-## Deployment
+## Quick Deployment
+
+For a normal install into an existing TrendRadar directory:
+
+```bash
+git clone https://github.com/tantanwu/Trendradar-admin.git /opt/trendradar-admin-src
+cd /opt/trendradar-admin-src
+sudo bash deploy/install.sh --trendradar-dir /opt/trendradar --image local/trendradar:6.10.0 --port 8081
+```
+
+The installer checks required TrendRadar files, copies the admin code into `/opt/trendradar/admin`, creates `/opt/trendradar/admin/.admin-token` if missing, writes `/opt/trendradar/docker-compose.admin.yml`, and starts `trendradar-admin`.
+
+Full guide: [docs/deployment.md](docs/deployment.md).
+
+## Required TrendRadar Files
+
+This repository is not a full TrendRadar fork. It expects TrendRadar itself to provide:
+
+```text
+docs/index.html
+docs/assets/...
+config/config.yaml
+config/frequency_words.txt
+config/timeline.yaml
+output/
+```
+
+If `docs/index.html` or `config/config.yaml` is missing, `deploy/install.sh` stops and tells you to install/fix TrendRadar first. It only creates files that should be machine-local, such as `admin/.admin-token` and `output/`.
+
+## Manual Deployment
 
 Create an admin token file outside git:
 
@@ -94,4 +125,3 @@ TRENDRADAR_RUN_TIMEOUT=900
 ```bash
 python3 -m py_compile admin/admin_server.py
 ```
-

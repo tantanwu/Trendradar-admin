@@ -6,6 +6,6 @@ __pycache__/
 admin/.admin-token
 config/
 output/
-docs/
+docs/index.html
+docs/assets/
 *.log
-
