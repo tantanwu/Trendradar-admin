@@ -295,13 +295,35 @@
     if (window.__trChineseVisualLabelsInstalled) return;
     window.__trChineseVisualLabelsInstalled = true;
 
+    let localizing = false;
+    let scheduled = false;
+    const scheduleLocalization = () => {
+      if (localizing || scheduled) return;
+      scheduled = true;
+      window.requestAnimationFrame(() => {
+        scheduled = false;
+        localizing = true;
+        try {
+          localizeVisualLabels(document);
+        } finally {
+          localizing = false;
+        }
+      });
+    };
+
     localizeVisualLabels(document);
     const observer = new MutationObserver((mutations) => {
-      if (mutations.some(m => m.addedNodes.length || m.type === 'childList')) {
-        window.requestAnimationFrame(() => localizeVisualLabels(document));
+      if (localizing) return;
+      if (mutations.some(m => m.addedNodes.length && !isLocalizationOnlyMutation(m))) {
+        scheduleLocalization();
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function isLocalizationOnlyMutation(mutation) {
+    const target = mutation.target;
+    return target?.nodeType === Node.ELEMENT_NODE && target.matches?.('option[data-tr-localized-value]');
   }
 
   function localizeVisualLabels(root) {
@@ -315,10 +337,12 @@
       const normalized = value || option.textContent.trim();
       const label = SELECT_OPTION_LABELS[normalized];
       if (!label) return;
+      if (option.dataset.trLocalizedValue === normalized && option.textContent.trim() === label) return;
       if (option.dataset.trOriginalLabel === undefined) {
         option.dataset.trOriginalLabel = option.textContent.trim();
       }
-      option.textContent = label;
+      option.dataset.trLocalizedValue = normalized;
+      if (option.textContent.trim() !== label) option.textContent = label;
       option.title = normalized;
     });
   }
