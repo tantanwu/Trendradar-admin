@@ -248,6 +248,75 @@
     window.setTimeout(() => card.classList.remove('tr-module-focus'), 1400);
   }
 
+  let sourceEditingUnlocked = false;
+
+  function installSourceEditorLock() {
+    if (window.__trSourceEditorLockInstalled) return;
+    window.__trSourceEditorLockInstalled = true;
+
+    injectSourceLockButton();
+    Object.values(EDITORS).forEach((spec) => {
+      const editor = byId(spec.id);
+      if (!editor) return;
+      editor.dataset.trSourceEditor = '1';
+      editor.addEventListener('beforeinput', blockSourceEditWhenLocked, true);
+      editor.addEventListener('paste', blockSourceEditWhenLocked, true);
+      editor.addEventListener('drop', blockSourceEditWhenLocked, true);
+    });
+    setSourceEditorsLocked(true);
+  }
+
+  function injectSourceLockButton() {
+    if (byId('tr-source-lock')) return;
+    const tabBar = byId('tab-config')?.parentElement;
+    if (!tabBar) return;
+
+    const button = document.createElement('button');
+    button.id = 'tr-source-lock';
+    button.type = 'button';
+    button.className = 'tr-source-lock locked';
+    button.title = '锁定时只能通过右侧可视化界面修改配置；解锁后才能直接编辑左侧源文件';
+    button.addEventListener('click', () => {
+      const willLock = sourceEditingUnlocked;
+      setSourceEditorsLocked(willLock);
+      toast(willLock ? '源文件编辑已锁定' : '源文件编辑已解锁，请谨慎直接修改 YAML', willLock ? 'info' : 'warning');
+    });
+
+    const spacer = tabBar.querySelector('.flex-grow');
+    if (spacer) tabBar.insertBefore(button, spacer);
+    else tabBar.appendChild(button);
+  }
+
+  function setSourceEditorsLocked(locked) {
+    sourceEditingUnlocked = !locked;
+    Object.values(EDITORS).forEach((spec) => {
+      const editor = byId(spec.id);
+      if (!editor) return;
+      editor.readOnly = locked;
+      editor.setAttribute('aria-readonly', locked ? 'true' : 'false');
+      editor.classList.toggle('tr-source-readonly', locked);
+      editor.classList.toggle('tr-source-unlocked', !locked);
+      editor.title = locked ? '源文件编辑已锁定；请使用右侧可视化界面修改，或点击上方按钮解锁' : '';
+    });
+    updateSourceLockButton();
+  }
+
+  function updateSourceLockButton() {
+    const button = byId('tr-source-lock');
+    if (!button) return;
+    button.classList.toggle('locked', !sourceEditingUnlocked);
+    button.classList.toggle('unlocked', sourceEditingUnlocked);
+    button.innerHTML = sourceEditingUnlocked
+      ? '<i class="fa-solid fa-lock-open mr-1"></i>锁定源文件'
+      : '<i class="fa-solid fa-lock mr-1"></i>解锁源文件';
+  }
+
+  function blockSourceEditWhenLocked(event) {
+    if (sourceEditingUnlocked || !event.isTrusted) return;
+    event.preventDefault();
+    toast('源文件编辑已锁定，请先点击“解锁源文件”；右侧可视化配置仍可直接修改。', 'info');
+  }
+
   const SELECT_OPTION_LABELS = {
     current: '当前快照',
     daily: '每日汇总',
@@ -382,6 +451,12 @@
       .tr-btn:disabled { opacity:.6; cursor:not-allowed; }
       .tr-official-actions { display:none !important; }
       .tr-run-state { position:fixed; right:18px; bottom:18px; z-index:50; background:#0f172a; color:#e2e8f0; border-radius:12px; padding:8px 11px; font-size:12px; box-shadow:0 12px 28px rgba(15,23,42,.25); pointer-events:none; }
+      .tr-source-lock { border:1px solid #3f3f46; background:#18181b; color:#d4d4d8; border-radius:7px; padding:5px 9px; margin-left:8px; font-size:11px; font-weight:700; line-height:1; transition:.15s ease; white-space:nowrap; }
+      .tr-source-lock:hover { background:#27272a; color:#fff; border-color:#6366f1; }
+      .tr-source-lock.unlocked { background:#7f1d1d; color:#fff; border-color:#ef4444; }
+      .highlight-textarea.tr-source-readonly { cursor:default; caret-color:transparent; }
+      .highlight-textarea.tr-source-readonly:focus { box-shadow:inset 0 0 0 1px rgba(99,102,241,.35); }
+      .highlight-textarea.tr-source-unlocked { caret-color:#e5e7eb; }
       .support-sidebar-wrap { display:none !important; }
       #support-sidebar { display:none !important; }
       .module-card.tr-module-focus { outline:2px solid #4f46e5; outline-offset:2px; box-shadow:0 0 0 5px rgba(79,70,229,.14); transition:outline-color .15s ease, box-shadow .15s ease; }
@@ -394,6 +469,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     injectStyles();
     injectServerBar();
+    installSourceEditorLock();
     installLinkedModuleNavigation();
     setTimeout(installLinkedModuleNavigation, 500);
     installChineseVisualLabels();
