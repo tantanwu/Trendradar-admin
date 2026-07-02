@@ -248,6 +248,99 @@
     window.setTimeout(() => card.classList.remove('tr-module-focus'), 1400);
   }
 
+  const SELECT_OPTION_LABELS = {
+    current: '当前快照',
+    daily: '每日汇总',
+    incremental: '增量更新',
+    keyword: '关键词',
+    platform: '平台',
+    ai: 'AI 智能筛选',
+    follow_report: '跟随报告模式',
+    error_on_overlap: '时间重叠时报错（推荐）',
+    last_wins: '后定义优先',
+    always_on: '全天运行',
+    workday: '工作日',
+    weekday: '工作日',
+    weekend: '周末',
+    morning_evening: '早晚两次',
+    custom: '自定义',
+    inherit: '继承',
+    default: '默认配置',
+    all_day: '全天',
+    weekday_morning: '工作日上午',
+    weekday_evening: '工作日晚上',
+    weekend_morning: '周末上午',
+    weekend_evening: '周末晚上',
+  };
+
+  const LABEL_REPLACEMENTS = [
+    ['API Key', 'API 密钥'],
+    ['API Base URL (可选)', 'API 接口地址（可选）'],
+    ['最大生成 Token 数', '最大生成令牌数'],
+    ['AI 分析模式', 'AI 分析模式'],
+    ['filter.method=ai', '筛选方法 = AI 智能筛选'],
+    ['method=keyword', '筛选方法 = 关键词'],
+    ['method=ai', '筛选方法 = AI 智能筛选'],
+    ['frequency_words.txt', '关键词文件 frequency_words.txt'],
+    ['ai_interests.txt', 'AI 兴趣文件 ai_interests.txt'],
+    ['filter_method', '筛选方法'],
+    ['frequency_file', '关键词文件'],
+    ['interests_file', 'AI 兴趣文件'],
+    ['Day Plans', '日计划'],
+    ['Week Map', '周映射'],
+    ['Overlap', '冲突策略'],
+  ];
+
+  function installChineseVisualLabels() {
+    if (window.__trChineseVisualLabelsInstalled) return;
+    window.__trChineseVisualLabelsInstalled = true;
+
+    localizeVisualLabels(document);
+    const observer = new MutationObserver((mutations) => {
+      if (mutations.some(m => m.addedNodes.length || m.type === 'childList')) {
+        window.requestAnimationFrame(() => localizeVisualLabels(document));
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function localizeVisualLabels(root) {
+    localizeSelectOptions(root);
+    localizeStaticText(root);
+  }
+
+  function localizeSelectOptions(root) {
+    root.querySelectorAll('select option').forEach((option) => {
+      const value = option.value || option.textContent.trim();
+      const normalized = value || option.textContent.trim();
+      const label = SELECT_OPTION_LABELS[normalized];
+      if (!label) return;
+      if (option.dataset.trOriginalLabel === undefined) {
+        option.dataset.trOriginalLabel = option.textContent.trim();
+      }
+      option.textContent = label;
+      option.title = normalized;
+    });
+  }
+
+  function localizeStaticText(root) {
+    root.querySelectorAll('#config-panel label, #config-panel .text-xs, #timeline-panel label, #timeline-panel .text-xs, #timeline-panel .tl-section-title').forEach((node) => {
+      if (node.dataset.trLocalizedText === '1') return;
+      if (node.children.length && !node.matches('label')) return;
+      let text = node.textContent;
+      let changed = false;
+      for (const [from, to] of LABEL_REPLACEMENTS) {
+        if (text.includes(from)) {
+          text = text.split(from).join(to);
+          changed = true;
+        }
+      }
+      if (!changed) return;
+      node.textContent = text;
+      node.dataset.trLocalizedText = '1';
+    });
+  }
+
   function injectStyles() {
     if (byId('tr-server-style')) return;
     const style = document.createElement('style');
@@ -279,6 +372,7 @@
     injectServerBar();
     installLinkedModuleNavigation();
     setTimeout(installLinkedModuleNavigation, 500);
+    installChineseVisualLabels();
     setTimeout(loadServerConfig, 250);
     refreshRunState();
   });
