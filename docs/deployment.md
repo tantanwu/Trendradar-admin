@@ -78,6 +78,15 @@ Both containers share:
 /opt/trendradar/docs
 ```
 
+The UI text is deployment-neutral. It says that config is saved to the current TrendRadar deployment rather than naming a particular host. If you want the status API to show explicit public URLs, set:
+
+```text
+TRENDRADAR_WEB_PUBLIC_URL=https://trendradar.example.com/
+TRENDRADAR_ADMIN_PUBLIC_URL=https://trendradar-admin.example.com/
+```
+
+If these are omitted, URLs are inferred from the request `Host`; `TRENDRADAR_WEB_PORT` controls the inferred main web port and defaults to `8080`.
+
 Recommended mount permissions:
 
 ```text

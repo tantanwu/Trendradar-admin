@@ -108,6 +108,22 @@ def latest_report():
     return None
 
 
+def service_urls(handler):
+    scheme = handler.headers.get("X-Forwarded-Proto", "http").split(",")[0].strip() or "http"
+    host = handler.headers.get("X-Forwarded-Host") or handler.headers.get("Host") or "127.0.0.1:8081"
+    admin_url = os.environ.get("TRENDRADAR_ADMIN_PUBLIC_URL", "").strip() or f"{scheme}://{host}/"
+    web_url = os.environ.get("TRENDRADAR_WEB_PUBLIC_URL", "").strip()
+    if not web_url:
+        web_port = os.environ.get("TRENDRADAR_WEB_PORT", "8080")
+        hostname = host
+        if host.startswith("[") and "]" in host:
+            hostname = host[:host.index("]") + 1]
+        elif ":" in host:
+            hostname = host.split(":", 1)[0]
+        web_url = f"{scheme}://{hostname}:{web_port}/"
+    return {"web": web_url.rstrip("/") + "/", "admin": admin_url.rstrip("/") + "/"}
+
+
 def list_backups():
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     items = []
@@ -141,7 +157,7 @@ def official_editor_html():
     if not index_path.exists():
         return "<!doctype html><meta charset=\"utf-8\"><title>TrendRadar Admin</title><p>官方配置编辑器文件不存在，请检查 /app/docs/index.html。</p>"
     html = index_path.read_text(encoding="utf-8")
-    html = html.replace("纯静态页面，数据仅保存在你的本地浏览器，请放心使用", "服务器增强模式：配置保存到 3.76 的 TrendRadar 实例")
+    html = html.replace("纯静态页面，数据仅保存在你的本地浏览器，请放心使用", "服务器增强模式：配置保存到当前 TrendRadar 部署")
     bridge = '    <script src="/admin-bridge.js"></script>\n'
     if "/admin-bridge.js" not in html:
         html = html.replace("</body>", bridge + "</body>")
@@ -372,7 +388,7 @@ class Handler(BaseHTTPRequestHandler):
                 for key, spec in TEXT_FILES.items():
                     path = spec["path"]
                     files.append({"key": key, "label": spec["label"], "exists": path.exists(), "mtime": path.stat().st_mtime if path.exists() else None})
-                self._json({"success": True, "config": config, "texts": texts, "files": files, "report": latest_report(), "service": {"web": "http://192.168.3.76:8080/", "admin": "http://192.168.3.76:8081/"}})
+                self._json({"success": True, "config": config, "texts": texts, "files": files, "report": latest_report(), "service": service_urls(self)})
             elif parsed.path == "/api/run":
                 self._json({"success": True, **RUN_STATE})
             elif parsed.path == "/api/backups":

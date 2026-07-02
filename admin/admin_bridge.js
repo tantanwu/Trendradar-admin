@@ -186,7 +186,7 @@
 
     const privacyHint = nav.querySelector('.hidden.lg\\:flex, .lg\\:flex');
     if (privacyHint) {
-      privacyHint.innerHTML = '<i class="fa-solid fa-server mr-1.5 text-indigo-500"></i><span>服务器增强模式：配置会保存到 3.76 的 TrendRadar 实例</span>';
+      privacyHint.innerHTML = '<i class="fa-solid fa-server mr-1.5 text-indigo-500"></i><span>服务器增强模式：配置会保存到当前 TrendRadar 部署</span>';
     }
 
     const oldActions = nav.querySelector('.flex.gap-3');

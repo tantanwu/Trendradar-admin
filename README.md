@@ -118,7 +118,12 @@ Useful optional variables:
 TRENDRADAR_ADMIN_HOST=0.0.0.0
 TRENDRADAR_ADMIN_PORT=8081
 TRENDRADAR_RUN_TIMEOUT=900
+TRENDRADAR_WEB_PORT=8080
+TRENDRADAR_WEB_PUBLIC_URL=https://trendradar.example.com/
+TRENDRADAR_ADMIN_PUBLIC_URL=https://trendradar-admin.example.com/
 ```
+
+If public URL variables are omitted, the admin API infers display URLs from the current request `Host`. The top navigation intentionally uses generic wording, so the UI remains portable across machines.
 
 ## Local Check
 
